@@ -31,6 +31,7 @@ adb_locallist="allowlist blocklist iplist"
 adb_basedir="/tmp"
 adb_finaldir=""
 adb_backupdir="/tmp/adblock-backup"
+adb_backupdirmounttimeout="0"
 adb_reportdir="/tmp/adblock-report"
 adb_jaildir="/tmp"
 adb_pidfile="/var/run/adblock.pid"
@@ -351,6 +352,19 @@ f_dns() {
 		for dir in "${adb_dnsdir:-"/tmp"}" "${adb_backupdir:-"/tmp"}" "${adb_jaildir:-"/tmp"}"; do
 			[ ! -d "${dir}" ] && mkdir -p "${dir}"
 		done
+		if [ ${adb_backupdirmounttimeout} -gt 0 ]; then
+			for i in $(seq ${adb_backupdirmounttimeout}); do
+				if grep -q ${adb_backupdir%/} /proc/mounts; then
+					f_log "info" "backup directory '${adb_backupdir}' is mounted"
+					break
+				else
+					sleep 1
+				fi
+			done
+			if ! grep -q ${adb_backupdir%/} /proc/mounts; then
+				f_log "info" "backup directory '${adb_backupdir}' is not mounted"
+			fi
+		fi
 		if [ "${adb_dnsflush}" = "1" ] || [ "${free_mem}" -lt "64" ]; then
 			printf "%b" "${adb_dnsheader}" >"${adb_finaldir}/${adb_dnsfile}"
 			f_dnsup
